@@ -1,0 +1,5 @@
+actinrings.egg-info/
+build/
+dist/
+tags
+*.swp
