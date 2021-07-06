@@ -1,5 +1,6 @@
 actinrings.egg-info/
 build/
 dist/
+*pycache*
 tags
 *.swp
