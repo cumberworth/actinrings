@@ -41,12 +41,17 @@ def calc_cuboid_ring_energy(length, height, R_ring, EI):
 
 
 def calc_sliding_force(params):
-    return -(constants.k*params['T']/params['delta'] *
-             math.log(1 + params['Xc']/params['kd']))
+    ks = params['ks']
+    kd = params['kd']
+    T = params['T']
+    delta = params['delta']
+    Xc = params['Xc']
+
+    return constants.k*T/delta * math.log(1 + ks**2*Xc/(kd*(ks + Xc)**2))
 
 
 def calc_sliding_energy(overlap_L, params):
-    return overlap_L*calc_sliding_force(params)
+    return -overlap_L*calc_sliding_force(params)
 
 
 def calc_bending_force(R_ring, params):
