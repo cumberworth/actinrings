@@ -25,7 +25,13 @@ def collect_integrated_data(filename_template, params):
 
         filename = filename_template.format(**format_dic)
         try:
-            frames.append(pd.read_csv(filename, sep=' '))
+            frame = pd.read_csv(filename, sep=' ')
+            for pair in combo:
+                if pair[0] not in frame.columns:
+                    frame[pair[0]] = pair[1]
+
+            frames.append(frame)
+
         except FileNotFoundError:
             print('Skipping {}'.format(filename))
 
