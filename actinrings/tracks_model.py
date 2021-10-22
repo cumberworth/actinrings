@@ -19,20 +19,45 @@ def calc_ring_energy(R_ring, N, Nmin, params):
     return total_energy
 
 
+def calc_ring_bending_energy(R_ring, N, Nmin, params):
+    return N*analytical.calc_bending_energy(R_ring, params)
+
+
+def calc_ring_sliding_energy(R_ring, N, Nmin, params):
+    R_ring_max = analytical.calc_max_radius(params['Lf'], Nmin)
+    overlap_L = 2*math.pi*(R_ring_max - R_ring)/Nmin
+    overlaps = Nmin + 2*(N - Nmin)
+
+    return overlaps*analytical.calc_sliding_energy(overlap_L, params)
+
+
 def calc_ring_force(R_ring, N, Nmin, params):
-    sliding_force = (2*math.pi*constants.k*params['T']*(2*N - Nmin) *
-                     math.log(params['Xc'] / params['kd'] + 1) /
-                     (params['delta']*Nmin))
-    bending_force = -params['EI']*N*params['Lf']/R_ring**3
+    ks = params['ks']
+    kd = params['kd']
+    T = params['T']
+    delta = params['delta']
+    Xc = params['Xc']
+    EI = params['EI']
+    Lf = params['Lf']
+    sliding_force = -(2*math.pi*constants.k*T*(2*N - Nmin) *
+                      math.log(1 + ks**2*Xc/(kd*(ks + Xc)**2))/(delta*Nmin))
+    bending_force = EI*N*Lf/R_ring**3
     total_force = sliding_force + bending_force
 
     return total_force
 
 
 def calc_equilibrium_ring_radius(N, Nmin, params):
-    num = params['EI']*N*params['delta']*params['Lf']*Nmin
-    denom = (2*math.pi*params['T']*constants.k *
-             math.log(params['Xc']/params['kd'] + 1)*(2*N - Nmin))
+    ks = params['ks']
+    kd = params['kd']
+    T = params['T']
+    delta = params['delta']
+    Xc = params['Xc']
+    EI = params['EI']
+    Lf = params['Lf']
+    num = EI*N*delta*Lf*Nmin
+    denom = (2*math.pi*T*constants.k *
+             math.log(1 + ks**2*Xc/(kd*(ks + Xc)**2))*(2*N - Nmin))
 
     return (num/denom)**(1/3)
 
