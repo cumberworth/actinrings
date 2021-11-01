@@ -19,7 +19,7 @@ def calc_ring_energy(R_ring, N, Nmin, params):
     return total_energy
 
 
-def calc_ring_bending_energy(R_ring, N, Nmin, params):
+def calc_ring_bending_energy(R_ring, N, params):
     return N*analytical.calc_bending_energy(R_ring, params)
 
 
