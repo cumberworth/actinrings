@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-"""Plot LFEs along radius from US weights"""
+"""Plot frequencies along radius"""
 
 import argparse
 
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import pandas as pd
-from scipy import constants
+import numpy as np
 
 from matplotlibstyles import styles
 
@@ -32,18 +32,19 @@ def setup_figure():
 
 
 def plot_figure(f, ax, args):
+    itr = args['itr']
     for vari in args['varis']:
         for rep in range(1, args['reps'] + 1):
-            filename = f'{args["input_dir"]}/{vari}/{vari}_rep-{rep}.biases'
-            biases = pd.read_csv(filename, header=0, delim_whitespace=True)
-            heights = biases.columns.astype(int)
-            lfes = -biases / (args['temp']*constants.k)
+            filename = f'{args["input_dir"]}/{vari}/{vari}_rep-{rep}.freqs'
+            freqs = pd.read_csv(filename, header=0, delim_whitespace=True)
+            heights = freqs.columns.astype(int)
 
-            ax.plot(heights, lfes.iloc[-1])
+            #ax.plot(heights, np.log10(freqs.iloc[itr - 1]))
+            ax.plot(heights, freqs.iloc[itr - 1])
 
 
 def setup_axis(ax):
-    ax.set_ylabel(r'$k_\mathrm{b}T$')
+    ax.set_ylabel(r'Fraction')
     ax.set_xlabel('Lattice height')
 
 
@@ -74,9 +75,9 @@ def parse_args():
         type=int,
         help='Number of reps')
     parser.add_argument(
-        'temp',
-        type=float,
-        help='Simulation temperature')
+        'itr',
+        type=int,
+        help='Iteration number')
     parser.add_argument(
         '--varis',
         nargs='+',
