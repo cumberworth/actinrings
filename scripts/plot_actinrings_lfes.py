@@ -6,55 +6,20 @@ import argparse
 
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
-import pandas as pd
-from scipy import constants
 
-from matplotlibstyles import styles
-
+from actinrings import plots
 
 def main():
-    args = parse_args()
-    f = setup_figure()
+    args = vars(parse_args())
+    p = plots.LFEsPlot(args)
+    f = plots.setup_figure()
     gs = gridspec.GridSpec(1, 1, f)
     ax = f.add_subplot(gs[0, 0])
 
-    plot_figure(f, ax, vars(args))
-    setup_axis(ax)
-    # set_labels(ax)
-    save_figure(f, args.plot_filebase)
-
-
-def setup_figure():
-    styles.set_default_style()
-    figsize = (styles.cm_to_inches(10), styles.cm_to_inches(7))
-
-    return plt.figure(figsize=figsize, dpi=300, constrained_layout=True)
-
-
-def plot_figure(f, ax, args):
-    for vari in args['varis']:
-        for rep in range(1, args['reps'] + 1):
-            filename = f'{args["input_dir"]}/{vari}/{vari}_rep-{rep}.biases'
-            biases = pd.read_csv(filename, header=0, delim_whitespace=True)
-            heights = biases.columns.astype(int)
-            lfes = -biases / (args['temp']*constants.k)
-
-            ax.plot(heights, lfes.iloc[-1])
-
-
-def setup_axis(ax):
-    ax.set_ylabel(r'$k_\mathrm{b}T$')
-    ax.set_xlabel('Lattice height')
-
-
-def set_labels(ax):
-    plt.legend()
-
-
-def save_figure(f, plot_filebase):
-    #f.savefig(plot_filebase + '.pgf', transparent=True)
-    f.savefig(plot_filebase + '.pdf', transparent=True)
-    f.savefig(plot_filebase + '.png', transparent=True)
+    p.plot_figure(f, ax)
+    p.setup_axis(ax)
+    # p.set_labels(ax)
+    plots.save_figure(f, args['plot_filebase'])
 
 
 def parse_args():
@@ -73,6 +38,10 @@ def parse_args():
         'reps',
         type=int,
         help='Number of reps')
+    parser.add_argument(
+        'itr',
+        type=int,
+        help='Iteration number')
     parser.add_argument(
         'temp',
         type=float,
