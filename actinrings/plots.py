@@ -1,6 +1,9 @@
 """Plotting functions and classes"""
 
+import json
+
 import matplotlib.pyplot as plt
+from matplotlib import cm
 from matplotlib import ticker
 import numpy as np
 import pandas as pd
@@ -50,6 +53,16 @@ def set_line_labels_to_middle(line, ax, ha, va, xshift=0, yshift=0):
         xpos, ypos + yshift, line.get_label(), color=line.get_color(),
         horizontalalignment=ha, verticalalignment=va)
 
+def load_sim_params(args, filename):
+    with open(filename) as file:
+        parms = json.load(file)
+
+    parms['N'] = parms['Nfil']
+    parms['Nmin'] = parms['Nsca']
+    parms['temp'] = parms['T']
+
+    return args | parms
+
 class Plot:
     def __init__(self, args):
         self._args = args
@@ -79,7 +92,7 @@ class FreqsPlot(Plot):
 class LFEsPlot(Plot):
     def plot_figure(self, f, ax):
         itr = self._args['itr']
-        input_dir = self._args["input_dir"]
+        input_dir = self._args['input_dir']
         for vari in self._args['varis']:
             for rep in range(1, self._args['reps'] + 1):
                 filename = f'{input_dir}/{vari}/{vari}_rep-{rep}.biases'
@@ -92,6 +105,58 @@ class LFEsPlot(Plot):
     def setup_axis(self, ax):
         ax.set_ylabel(r'$k_\mathrm{b}T$')
         ax.set_xlabel('Lattice height')
+
+
+class RadiusLFEsAnalyticalPlot(Plot):
+    def plot_figure(self, f, ax, calc_degen=False):
+        itr = self._args['itr']
+        input_dir = self._args['input_dir']
+        vari = self._args['vari']
+        delta = self._args['delta']
+        Lf = self._args['Lf']
+        Nmin = self._args['Nmin']
+        N = self._args['N']
+        temp = self._args['temp']
+        lf = self._args['lf']
+
+        cmap = cm.get_cmap('tab10')
+
+        filename = f'{input_dir}/{vari}/{vari}_rep-1.biases'
+        biases = pd.read_csv(filename, header=0, delim_whitespace=True)
+        heights = biases.columns.astype(int)
+        radii = (heights + 1) * delta / (2*np.pi)
+        radii_scaled = radii / 1e-6
+
+        align_i = -1
+
+        for rep in range(1, self._args['reps'] + 1):
+            filename = f'{input_dir}/{vari}/{vari}_rep-{rep}.biases'
+            biases = pd.read_csv(filename, header=0, delim_whitespace=True)
+            heights = biases.columns.astype(int)
+            lfes = -biases / (self._args['temp']*constants.k)
+            lfes_last_itr = lfes.iloc[-1]
+            lfes_last_itr -= lfes_last_itr[align_i]
+            ax.plot(radii_scaled, lfes_last_itr, marker='o', color=cmap(0))
+
+        energies = [tracks_model.calc_ring_energy(
+            r, N, Nmin, self._args) for r in radii]
+        energies = np.array(energies)
+        energies_scaled = energies/(constants.k*temp)
+        energies_scaled -= energies_scaled[align_i]
+
+        ax.plot(radii_scaled, energies_scaled, color=cmap(1))
+
+        if calc_degen:
+            degens = tracks_model.calc_degeneracies(heights, lf)
+            boltz_weights = degens*np.exp(-energies/constants.k/temp)
+            lfes_anal = -np.log(boltz_weights / boltz_weights[align_i])
+
+            ax.plot(radii_scaled, lfes_anal, color=cmap(2))
+
+
+    def setup_axis(self, ax):
+        ax.set_xlabel(r'$R / \si{\micro\meter}$')
+        ax.set_ylabel(r'$k_\mathrm{b}T$')
 
 
 class RadiiPlot(Plot):

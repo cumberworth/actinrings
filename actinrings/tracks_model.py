@@ -2,6 +2,7 @@
 
 import math
 
+import numpy as np
 from scipy import constants
 from scipy import optimize
 
@@ -83,3 +84,14 @@ def calc_equilibrium_radius_numerical(N, Nmin, params):
         raise
 
     return res.x
+
+
+def calc_degeneracies(heights, lf):
+    """This only works for Nfil=Nsca=2."""
+    max_height = 2*lf - 1
+    degens = []
+    for h in heights:
+        overlap = max_height - h
+        degens.append(overlap - 1)
+
+    return np.array(degens)
