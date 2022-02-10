@@ -86,12 +86,21 @@ def calc_equilibrium_radius_numerical(N, Nmin, params):
     return res.x
 
 
-def calc_degeneracies(heights, lf):
-    """This only works for Nfil=Nsca=2."""
-    max_height = 2*lf - 1
+def calc_degeneracies(heights, lf, N, include_height=False):
+    """This only works for Nsca=2."""
+    max_height = 2*lf - 3
     degens = []
     for h in heights:
-        overlap = max_height - h
-        degens.append(overlap - 1)
+        overlap = max_height - h + 2
+        if include_height:
+            if N == 2:
+                degens.append((h + 1)*(overlap - 1))
+            else:
+                degens.append((h + 1)*(overlap - 1)*overlap**(N - 2))
+        else:
+            if N == 2:
+                degens.append(overlap - 1)
+            else:
+                degens.append((overlap - 1)*overlap**(N - 2))
 
     return np.array(degens)
