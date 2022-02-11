@@ -10,7 +10,6 @@ import pandas as pd
 from scipy import constants
 
 from actinrings import analytical
-from actinrings import tracks_model
 from matplotlibstyles import styles
 
 
@@ -77,17 +76,39 @@ def set_line_labels_to_middle(line, ax, ha, va, xshift=0, yshift=0, alpha=1):
 
 
 def load_sim_params(args, filename):
+    """Load parameters from simulation input file.
+
+    Args:
+        args:
+        filename:
+
+    Returns:
+        A dictionary that merges args with the loaded parameters.
+    """
     with open(filename) as file:
         parms = json.load(file)
 
     parms["N"] = parms["Nfil"]
-    parms["Nmin"] = parms["Nsca"]
     parms["temp"] = parms["T"]
 
     return args | parms
 
 
 class Plot:
+    """Base class for all plot types.
+
+    The idea is to provide a consistent way to make plots with scripts that
+    provide the parameters.
+
+    Attributes:
+        args: A dictionary with a standard set of keys
+
+    Methods:
+        plot_figure: Make the plot
+        setup_axis: Setup the axis, which should be called after plot_figure
+        set_labels: Set labels, legend, colourbar
+    """
+
     def __init__(self, args):
         self._args = args
 
@@ -96,11 +117,16 @@ class Plot:
 
 
 class FreqsPlot(Plot):
-    def plot_figure(self, f, ax):
+    """Histogram for the lattice height from MC simulation data."""
+
+    def plot_figure(self, ax):
         itr = self._args["itr"]
         input_dir = self._args["input_dir"]
-        for vari in self._args["varis"]:
-            for rep in range(1, self._args["reps"] + 1):
+        varis = self._args["varis"]
+        reps = self._args["reps"]
+
+        for vari in varis:
+            for rep in range(1, reps + 1):
                 filename = f"{input_dir}/{vari}/{vari}_rep-{rep}.freqs"
                 freqs = pd.read_csv(filename, header=0, delim_whitespace=True)
                 heights = freqs.columns.astype(int)
@@ -114,15 +140,21 @@ class FreqsPlot(Plot):
 
 
 class LFEsPlot(Plot):
-    def plot_figure(self, f, ax):
+    """Landau free energy as function of lattice height from MC simulation data."""
+
+    def plot_figure(self, ax):
+        temp = self._args["temp"]
         itr = self._args["itr"]
         input_dir = self._args["input_dir"]
-        for vari in self._args["varis"]:
-            for rep in range(1, self._args["reps"] + 1):
+        varis = self._args["varis"]
+        reps = self._args["reps"]
+
+        for vari in varis:
+            for rep in range(1, reps + 1):
                 filename = f"{input_dir}/{vari}/{vari}_rep-{rep}.biases"
                 biases = pd.read_csv(filename, header=0, delim_whitespace=True)
                 heights = biases.columns.astype(int)
-                lfes = -biases / (self._args["temp"] * constants.k)
+                lfes = -biases / (temp * constants.k)
 
                 ax.plot(heights, lfes.iloc[itr - 1], marker="o")
 
@@ -132,16 +164,23 @@ class LFEsPlot(Plot):
 
 
 class RadiusLFEsAnalyticalPlot(Plot):
-    def plot_figure(self, f, ax, calc_degen=False):
+    """LFEs from analytical model and simulation data as a function of ring radius.
+
+    Can include degeneracies in limited cases; this is useful for implementation
+    validation.
+    """
+
+    def plot_figure(self, ax, calc_degen=False):
         itr = self._args["itr"]
         input_dir = self._args["input_dir"]
         vari = self._args["vari"]
         delta = self._args["delta"]
         Lf = self._args["Lf"]
-        Nmin = self._args["Nmin"]
+        Nsca = self._args["Nsca"]
         N = self._args["N"]
         temp = self._args["temp"]
         lf = self._args["lf"]
+        reps = self._args["reps"]
 
         cmap = cm.get_cmap("tab10")
 
@@ -153,7 +192,7 @@ class RadiusLFEsAnalyticalPlot(Plot):
 
         align_i = -1
 
-        for rep in range(1, self._args["reps"] + 1):
+        for rep in range(1, reps + 1):
             filename = f"{input_dir}/{vari}/{vari}_rep-{rep}.biases"
             biases = pd.read_csv(filename, header=0, delim_whitespace=True)
             heights = biases.columns.astype(int)
@@ -163,9 +202,7 @@ class RadiusLFEsAnalyticalPlot(Plot):
             lfes_itr -= lfes_itr[align_i]
             ax.plot(radii_scaled, lfes_itr, color=cmap(0))
 
-        energies = [
-            tracks_model.calc_ring_energy(r, N, Nmin, self._args) for r in radii
-        ]
+        energies = [analytical.calc_ring_energy(r, N, Nsca, self._args) for r in radii]
         energies = np.array(energies)
         energies_scaled = energies / (constants.k * temp)
         energies_scaled -= energies_scaled[align_i]
@@ -173,15 +210,13 @@ class RadiusLFEsAnalyticalPlot(Plot):
         ax.plot(radii_scaled, energies_scaled, color=cmap(1))
 
         if calc_degen:
-            # degens = tracks_model.calc_degeneracies(heights, lf, include_height=True)
+            # degens = analytical.calc_degeneracies(heights, lf, include_height=True)
             # boltz_weights = degens*np.exp(-energies/constants.k/temp)
             # lfes_anal = -np.log(boltz_weights / boltz_weights[align_i])
 
             # ax.plot(radii_scaled, lfes_anal, color=cmap(2))
 
-            degens = tracks_model.calc_degeneracies(
-                heights, lf, N, include_height=False
-            )
+            degens = analytical.calc_degeneracies(heights, lf, N, include_height=False)
             boltz_weights = degens * np.exp(-energies / constants.k / temp)
             lfes_anal = -np.log(boltz_weights / boltz_weights[align_i])
 
@@ -192,127 +227,23 @@ class RadiusLFEsAnalyticalPlot(Plot):
         ax.set_ylabel(r"$LFE / k_\mathrm{b}T$")
 
 
-class RadiusLFEsNPlot(Plot):
-    def plot_figure(self, f, ax, alpha=1, calc_anal=False, align=False):
-        itrs = self._args["itrs"]
-        input_dir = self._args["input_dir"]
-        varis = self._args["varis"]
-        delta = self._args["delta"]
-        Lf = self._args["Lf"]
-        Nmin = self._args["Nmin"]
-        Ns = self._args["Ns"]
-        temp = self._args["temp"]
-        lf = self._args["lf"]
-
-        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
-        mappable = styles.create_linear_mappable(cmap, Ns[0], Ns[-1])
-
-        # Get heights (same for all N)
-        filename = f"{input_dir}/{varis[0]}/{varis[0]}_rep-1.biases"
-        biases = pd.read_csv(filename, header=0, delim_whitespace=True)
-        heights = biases.columns.astype(int)
-        radii = (heights + 1) * delta / (2 * np.pi)
-        radii_scaled = radii / 1e-6
-
-        align_i = -1
-
-        radii_scaled = radii / 1e-6
-        N_lfes = []
-        min_lfes = []
-        min_radii = []
-        for N, vari, itr in zip(Ns, varis, itrs):
-            if calc_anal:
-                lfes = [
-                    tracks_model.calc_ring_energy(r, N, Nmin, self._args) for r in radii
-                ]
-                lfes = np.array(lfes)
-                lfes_scaled = lfes / (constants.k * temp)
-                if align:
-                    lfes_scaled -= lfes_scaled[align_i]
-
-                N_lfes.append(lfes_scaled)
-                min_lfe_i = np.argmin(lfes_scaled)
-                min_lfes.append(lfes_scaled[min_lfe_i])
-                min_radii.append(np.min(radii_scaled[min_lfe_i]))
-            else:
-                N_lfes.append([])
-                min_radii.append([])
-                min_lfes.append([])
-                for rep in range(1, self._args["reps"] + 1):
-                    filename = f"{input_dir}/{vari}/{vari}_rep-{rep}.biases"
-                    biases = pd.read_csv(filename, header=0, delim_whitespace=True)
-                    heights = biases.columns.astype(int)
-                    lfes = -biases / (temp * constants.k)
-                    lfes_itr = lfes.iloc[itr - 1]
-                    if align:
-                        lfes_itr -= lfes_itr[align_i]
-
-                    N_lfes[-1].append(lfes_itr)
-
-                    min_lfe_i = np.argmin(lfes_itr)
-                    min_lfes[-1].append(lfes_itr[min_lfe_i])
-                    min_radii[-1].append(np.min(radii_scaled[min_lfe_i]))
-
-        # Scale energy to have min at 0
-        # N_lfes = np.array(N_lfes)
-        # min_lfe = np.min(min_lfes)
-        # N_lfes -= min_lfe
-        # min_lfes -= min_lfe
-
-        # Plot
-        for i, N in enumerate(Ns):
-            label = rf"$N_\text{{f}}={N}$"
-            if calc_anal:
-                label = label + ",\nanalytical"
-
-            if calc_anal:
-                lfes = N_lfes[i]
-                ax.plot(
-                    radii_scaled,
-                    lfes,
-                    color=mappable.to_rgba(N),
-                    label=label,
-                    alpha=alpha,
-                )
-            else:
-                for rep in range(self._args["reps"]):
-                    lfes = N_lfes[i][rep]
-                    ax.plot(
-                        radii_scaled,
-                        lfes,
-                        color=mappable.to_rgba(N),
-                        label=label,
-                        alpha=alpha,
-                        marker=".",
-                        markersize=1,
-                    )
-
-        ax.plot(
-            np.mean(min_radii, axis=1),
-            np.mean(min_lfes, axis=1),
-            linestyle="None",
-            marker="*",
-            markersize=4,
-            markeredgewidth=0,
-            alpha=alpha,
-        )
-
-    def setup_axis(self, ax):
-        ax.set_xlabel(r"$R / \si{\micro\meter}$")
-        ax.set_ylabel(r"$LFE / k_\mathrm{b}T$")
-
-
 class RadiusForcesAnalyticalPlot(Plot):
-    def plot_figure(self, f, ax, calc_degen=False):
+    """Forces from analytical model and simulation data as a function of ring radius.
+
+    Can include degeneracies in limited cases; this is useful for implementation
+    validation.
+    """
+
+    def plot_figure(self, ax, calc_degen=False):
         itr = self._args["itr"]
         input_dir = self._args["input_dir"]
         vari = self._args["vari"]
         delta = self._args["delta"]
-        Lf = self._args["Lf"]
-        Nmin = self._args["Nmin"]
+        Nsca = self._args["Nsca"]
         N = self._args["N"]
         temp = self._args["temp"]
         lf = self._args["lf"]
+        reps = self._args["reps"]
 
         cmap = cm.get_cmap("tab10")
 
@@ -324,7 +255,7 @@ class RadiusForcesAnalyticalPlot(Plot):
         radii_scaled = radii / 1e-6
         forces_radii_scaled = forces_radii / 1e-6
 
-        for rep in range(1, self._args["reps"] + 1):
+        for rep in range(1, reps + 1):
             filename = f"{input_dir}/{vari}/{vari}_rep-{rep}.biases"
             biases = pd.read_csv(filename, header=0, delim_whitespace=True)
             heights = biases.columns.astype(int)
@@ -334,18 +265,18 @@ class RadiusForcesAnalyticalPlot(Plot):
             forces_scaled = np.array(forces) / 1e-12
             ax.plot(forces_radii_scaled, forces_scaled, color=cmap(0))
 
-        a_forces = [tracks_model.calc_ring_force(r, N, Nmin, self._args) for r in radii]
+        a_forces = [analytical.calc_ring_force(r, N, Nsca, self._args) for r in radii]
         a_forces_scaled = np.array(a_forces) / 1e-12
 
         ax.plot(radii_scaled, a_forces_scaled, color=cmap(1))
 
         if calc_degen:
             energies = [
-                tracks_model.calc_ring_energy(r, N, Nmin, self._args) for r in radii
+                analytical.calc_ring_energy(r, N, Nsca, self._args) for r in radii
             ]
             energies = np.array(energies)
 
-            # degens = tracks_model.calc_degeneracies(heights, lf, include_height=True)
+            # degens = analytical.calc_degeneracies(heights, lf, include_height=True)
             # boltz_weights = degens*np.exp(-energies/constants.k/temp)
             # lfes_anal = -constants.k*temp*np.log(boltz_weights)
             # forces_anal = -np.diff(lfes_anal)/(delta / (2*np.pi))
@@ -353,9 +284,7 @@ class RadiusForcesAnalyticalPlot(Plot):
 
             # ax.plot(forces_radii_scaled, forces_anal_scaled, color=cmap(2))
 
-            degens = tracks_model.calc_degeneracies(
-                heights, lf, N, include_height=False
-            )
+            degens = analytical.calc_degeneracies(heights, lf, N, include_height=False)
             boltz_weights = degens * np.exp(-energies / constants.k / temp)
             lfes_anal = -constants.k * temp * np.log(boltz_weights)
             forces_anal = -np.diff(lfes_anal) / (delta / (2 * np.pi))
@@ -368,80 +297,15 @@ class RadiusForcesAnalyticalPlot(Plot):
         ax.set_ylabel(r"$F / \si{\pico\newton}$")
 
 
-class RadiusForcesNPlot(Plot):
-    def plot_figure(self, f, ax, calc_anal=False, alpha=1, zero_line=False):
-        itrs = self._args["itrs"]
-        input_dir = self._args["input_dir"]
-        varis = self._args["varis"]
-        delta = self._args["delta"]
-        Lf = self._args["Lf"]
-        Nmin = self._args["Nmin"]
-        Ns = self._args["Ns"]
-        temp = self._args["temp"]
-        lf = self._args["lf"]
-
-        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
-        mappable = styles.create_linear_mappable(cmap, Ns[0], Ns[-1])
-
-        # Get heights (same for all N)
-        filename = f"{input_dir}/{varis[0]}/{varis[0]}_rep-1.biases"
-        biases = pd.read_csv(filename, header=0, delim_whitespace=True)
-        heights = biases.columns.astype(int)
-        radii = (heights + 1) * delta / (2 * np.pi)
-        forces_radii = radii[1:] - delta
-        radii_scaled = radii / 1e-6
-        forces_radii_scaled = forces_radii / 1e-6
-
-        for N, vari, itr in zip(Ns, varis, itrs):
-            if calc_anal:
-                forces = [
-                    tracks_model.calc_ring_force(r, N, Nmin, self._args)
-                    for r in forces_radii
-                ]
-                forces_scaled = np.array(forces) / 1e-12
-                label = rf"$N_\text{{f}}={N}$"
-                label = label + ",\nanalytical"
-                ax.plot(
-                    forces_radii_scaled,
-                    forces_scaled,
-                    color=mappable.to_rgba(N),
-                    label=label,
-                    alpha=alpha,
-                )
-            else:
-                for rep in range(1, self._args["reps"] + 1):
-                    filename = f"{input_dir}/{vari}/{vari}_rep-{rep}.biases"
-                    biases = pd.read_csv(filename, header=0, delim_whitespace=True)
-                    heights = biases.columns.astype(int)
-                    lfes = -biases
-                    lfes_itr = lfes.iloc[itr - 1]
-                    forces = -np.diff(lfes_itr) / (delta / (2 * np.pi))
-                    forces_scaled = np.array(forces) / 1e-12
-                    label = rf"$N_\text{{f}}={N}$"
-                    ax.plot(
-                        forces_radii_scaled,
-                        forces_scaled,
-                        color=mappable.to_rgba(N),
-                        label=label,
-                        alpha=alpha,
-                        marker=".",
-                        markersize=1,
-                    )
-
-        if zero_line:
-            ax.axhline(0, linestyle="dashed")
-
-    def setup_axis(self, ax):
-        ax.set_xlabel(r"$R / \si{\micro\meter}$")
-        ax.set_ylabel(r"$F / \si{\pico\newton}$")
-
-
 class RadiiPlot(Plot):
-    def plot_figure(self, f, ax):
+    """Step series of ring radii during simulation."""
+
+    def plot_figure(self, ax):
         vari = self._args["vari"]
         input_dir = self._args["input_dir"]
         rep = self._args["rep"]
         itr = self._args["itr"]
+
         filename = f"{input_dir}/{vari}/{vari}_rep-{rep}_iter-{itr}.ops"
         ops = pd.read_csv(filename, header=0, delim_whitespace=True)
         ax.plot(ops["step"], ops["radius"])
@@ -452,22 +316,23 @@ class RadiiPlot(Plot):
 
 
 class LfEradiusNPlot(Plot):
-    def plot_figure(self, f, ax):
-        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
+    """Equilibrium radius as function of filament length for a range of N."""
+
+    def plot_figure(self, ax):
         Lfs = self._args["Lfs"]
         Ns = self._args["Ns"]
-        Nmin = self._args["Nmin"]
+        Nsca = self._args["Nsca"]
+
+        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
         mappable = styles.create_linear_mappable(cmap, Ns[0], Ns[-1])
-        xvals = []
-        yvals = []
         for N in Ns:
             radii = []
             lengths = []
             for j, Lf in enumerate(Lfs):
                 self._args["Lf"] = Lf
-                max_radius = analytical.calc_max_radius(self._args["Lf"], Nmin)
+                max_radius = analytical.calc_max_radius(Lf, Nsca)
                 min_radius = analytical.calc_min_radius(max_radius)
-                r = tracks_model.calc_equilibrium_ring_radius(N, Nmin, self._args)
+                r = analytical.calc_equilibrium_ring_radius(N, Nsca, self._args)
                 if r >= min_radius and r <= max_radius:
                     radii.append(r)
                     lengths.append(Lfs[j])
@@ -481,26 +346,29 @@ class LfEradiusNPlot(Plot):
             ax.plot(lengths, radii, color=mappable.to_rgba(N), label=label)
 
     def setup_axis(self, ax):
-        ax.set_title(rf'$N_\text{{sca}} = {self._args["Nmin"]}$', loc="center")
+        ax.set_title(rf'$N_\text{{sca}} = {self._args["Nsca"]}$', loc="center")
         ax.set_xlabel(r"$L^\text{f} / \si{\micro\meter}$")
         ax.set_ylabel(r"$R_\text{eq} / \si{\micro\meter}$")
 
 
-class LfEradiusNminPlot(Plot):
-    def plot_figure(self, f, ax):
-        Nmins = self._args["Nmins"]
-        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
-        mappable = styles.create_linear_mappable(cmap, Nmins[0], Nmins[-1])
+class LfEradiusNscaPlot(Plot):
+    """Equilibrium radius as function of filament length for a range of Nsca."""
+
+    def plot_figure(self, ax):
+        Nscas = self._args["Nscas"]
         N = self._args["N"]
         Lfs = self._args["Lfs"]
-        for Nmin in Nmins:
+
+        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
+        mappable = styles.create_linear_mappable(cmap, Nscas[0], Nscas[-1])
+        for Nsca in Nscas:
             radii = []
             lengths = []
             for j, Lf in enumerate(Lfs):
                 self._args["Lf"] = Lf
-                max_radius = analytical.calc_max_radius(self._args["Lf"], Nmin)
+                max_radius = analytical.calc_max_radius(Lf, Nsca)
                 min_radius = analytical.calc_min_radius(max_radius)
-                r = tracks_model.calc_equilibrium_ring_radius(N, Nmin, self._args)
+                r = analytical.calc_equilibrium_ring_radius(N, Nsca, self._args)
                 if r >= min_radius and r <= max_radius:
                     radii.append(r)
                     lengths.append(Lfs[j])
@@ -510,8 +378,8 @@ class LfEradiusNminPlot(Plot):
             lengths = np.array(lengths) / 1e-6
 
             # Plot
-            label = rf"$N_\text{{sca}}={Nmin}"
-            ax.plot(lengths, radii, color=mappable.to_rgba(Nmin), label=label)
+            label = rf"$N_\text{{sca}}={Nsca}"
+            ax.plot(lengths, radii, color=mappable.to_rgba(Nsca), label=label)
 
     def setup_axis(self, ax):
         ax.set_title(rf'$N_\text{{f}} = {self._args["N"]}$', loc="center")
@@ -520,21 +388,24 @@ class LfEradiusNminPlot(Plot):
 
 
 class XcForcePlot(Plot):
-    def plot_figure(self, f, ax):
+    """Constriction force as a function of crosslinker concentration."""
+
+    def plot_figure(self, ax):
         fractions = self._args["fractions"]
-        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
-        mappable = styles.create_linear_mappable(cmap, fractions[0], fractions[-1])
         N = self._args["N"]
-        Nmin = self._args["Nmin"]
+        Nsca = self._args["Nsca"]
         Xcs = self._args["Xcs"]
         Lf = self._args["Lf"]
-        max_radius = analytical.calc_max_radius(Lf, Nmin)
+
+        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
+        mappable = styles.create_linear_mappable(cmap, fractions[0], fractions[-1])
+        max_radius = analytical.calc_max_radius(Lf, Nsca)
         for fraction in fractions:
             r = max_radius * fraction
             forces = []
             for Xc in Xcs:
                 self._args["Xc"] = Xc
-                force = tracks_model.calc_ring_force(r, N, Nmin, self._args)
+                force = analytical.calc_ring_force(r, N, Nsca, self._args)
                 forces.append(force)
 
             # Convert units
@@ -553,9 +424,10 @@ class XcForcePlot(Plot):
     def setup_axis(self, ax):
         Lf_scaled = self._args["Lf"] / 1e-6
         N = self._args["N"]
-        Nmin = self._args["Nmin"]
+        Nsca = self._args["Nsca"]
+
         ax.set_title(
-            rf"$N_\text{{sca}} = {Nmin}$, $N_\text{{f}} = {N}$, $L_\text{{f}}"
+            rf"$N_\text{{sca}} = {Nsca}$, $N_\text{{f}} = {N}$, $L_\text{{f}}"
             rf"= \SI{{{int(Lf_scaled)}}}{{\micro\meter}}$",
             loc="center",
         )
@@ -571,12 +443,19 @@ class XcForcePlot(Plot):
 
 
 class RadiusEnergyLfPlot(Plot):
-    def plot_figure(self, f, ax, calc_degens=False, alpha=1):
-        Nmin = self._args["Nmin"]
+    """Energy as a function of filament ring radius for a range of filament lengths.
+
+    Can include degeneracies in limited cases; this is useful for implementation
+    validation.
+    """
+
+    def plot_figure(self, ax, calc_degens=False, alpha=1):
+        Nsca = self._args["Nsca"]
         N = self._args["N"]
         Lfs = self._args["Lfs"]
         delta = self._args["delta"]
-        temp = self._args["T"]
+        T = self._args["T"]
+        lfs = self._args["lfs"]
 
         cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
         mappable = styles.create_linear_mappable(cmap, Lfs[0], Lfs[-1])
@@ -587,32 +466,33 @@ class RadiusEnergyLfPlot(Plot):
         for i, Lf in enumerate(Lfs):
             self._args["Lf"] = Lf
             if calc_degens:
-                lf = self._args["lfs"][i]
-                max_height = int(Nmin * lf - Nmin - 1)
-                min_height = int((Nmin // 2) * lf - 1)
+                lf = lfs[i]
+                max_height = int(Nsca * lf - Nsca - 1)
+                min_height = int((Nsca // 2) * lf - 1)
                 heights = range(min_height, max_height + 1)
                 heights = np.array(heights)
                 radii = (heights + 1) * delta / (2 * np.pi)
             else:
                 samples = self._args["samples"]
-                max_radius = analytical.calc_max_radius(self._args["Lf"], Nmin)
+
+                max_radius = analytical.calc_max_radius(Lf, Nsca)
                 min_radius = analytical.calc_min_radius(max_radius)
                 radii = np.linspace(min_radius, max_radius, num=samples)
 
             radii_scaled = radii / 1e-6
             radiis.append(radii_scaled)
             energy = [
-                tracks_model.calc_ring_energy(r, N, Nmin, self._args) for r in radii
+                analytical.calc_ring_energy(r, N, Nsca, self._args) for r in radii
             ]
             energy = np.array(energy)
             if calc_degens:
-                degens = tracks_model.calc_degeneracies(
+                degens = analytical.calc_degeneracies(
                     heights, lf, N, include_height=False
                 )
-                boltz_weights = degens * np.exp(-energy / constants.k / temp)
-                energy = -constants.k * temp * np.log(boltz_weights)
+                boltz_weights = degens * np.exp(-energy / constants.k / T)
+                energy = -constants.k * T * np.log(boltz_weights)
 
-            energy_scaled = np.array(energy) / (constants.k * self._args["T"])
+            energy_scaled = np.array(energy) / (constants.k * T)
             energies.append(energy_scaled)
             min_energy_i = np.argmin(energy_scaled)
             min_energies.append(energy_scaled[min_energy_i])
@@ -640,9 +520,10 @@ class RadiusEnergyLfPlot(Plot):
         )
 
     def setup_axis(self, ax):
-        Nmin = self._args["Nmin"]
+        Nsca = self._args["Nsca"]
         N = self._args["N"]
-        ax.set_title(rf"$N_\text{{sca}} = {Nmin}$, $N_\text{{f}} = {N}$", loc="center")
+
+        ax.set_title(rf"$N_\text{{sca}} = {Nsca}$, $N_\text{{f}} = {N}$", loc="center")
         ax.set_xlabel(r"$R / \si{\micro\meter}$")
         ax.set_ylabel(r"$\upDelta \Phi / \si{\kb} T$ \hspace{7pt}", labelpad=-4)
 
@@ -651,25 +532,34 @@ class RadiusEnergyLfPlot(Plot):
 
 
 class RadiusEnergyNPlot(Plot):
-    def plot_figure(self, f, ax, calc_degens=False, alpha=1):
+    """Energy as a function of ring radius for a range of N.
+
+    Can include degeneracies in limited cases; this is useful for implementation
+    validation.
+    """
+
+    def plot_figure(self, ax, calc_degens=False, alpha=1):
         Ns = self._args["Ns"]
-        Nmin = self._args["Nmin"]
-        temp = self._args["T"]
+        Nsca = self._args["Nsca"]
+        T = self._args["T"]
         delta = self._args["delta"]
+        Lf = self._args["Lf"]
 
         cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
         mappable = styles.create_linear_mappable(cmap, Ns[0], Ns[-1])
-        max_radius = analytical.calc_max_radius(self._args["Lf"], Nmin)
+        max_radius = analytical.calc_max_radius(Lf, Nsca)
         min_radius = analytical.calc_min_radius(max_radius)
         if calc_degens:
             lf = self._args["lf"]
-            max_height = Nmin * lf - Nmin - 1
-            min_height = (Nmin // 2) * lf - 1
+
+            max_height = Nsca * lf - Nsca - 1
+            min_height = (Nsca // 2) * lf - 1
             heights = range(min_height, max_height + 1)
             heights = np.array(heights)
             radii = (heights + 1) * delta / (2 * np.pi)
         else:
             samples = self._args["samples"]
+
             radii = np.linspace(min_radius, max_radius, num=samples)
 
         radii_scaled = radii / 1e-6
@@ -678,17 +568,17 @@ class RadiusEnergyNPlot(Plot):
         min_radii = []
         for N in Ns:
             energy = [
-                tracks_model.calc_ring_energy(r, N, Nmin, self._args) for r in radii
+                analytical.calc_ring_energy(r, N, Nsca, self._args) for r in radii
             ]
             energy = np.array(energy)
             if calc_degens:
-                degens = tracks_model.calc_degeneracies(
+                degens = analytical.calc_degeneracies(
                     heights, lf, N, include_height=False
                 )
-                boltz_weights = degens * np.exp(-energy / constants.k / temp)
-                energy = -constants.k * temp * np.log(boltz_weights)
+                boltz_weights = degens * np.exp(-energy / constants.k / T)
+                energy = -constants.k * T * np.log(boltz_weights)
 
-            energy_scaled = np.array(energy) / (constants.k * temp)
+            energy_scaled = np.array(energy) / (constants.k * T)
             energies.append(energy_scaled)
             min_energy_i = np.argmin(energy_scaled)
             min_energies.append(energy_scaled[min_energy_i])
@@ -725,36 +615,42 @@ class RadiusEnergyNPlot(Plot):
 
     def setup_axis(self, ax):
         Lf_scaled = int(self._args["Lf"] / 1e-6)
-        Nmin = self._args["Nmin"]
+        Nsca = self._args["Nsca"]
+
         ax.set_title(
-            rf"$N_\text{{sca}} = {Nmin}$, $L_\text{{f}} = \SI{{{Lf_scaled}}}{{\micro\meter}}$",
+            rf"$N_\text{{sca}} = {Nsca}$, $L_\text{{f}} = \SI{{{Lf_scaled}}}{{\micro\meter}}$",
             loc="center",
         )
         ax.set_xlabel(r"$R / \si{\micro\meter}$")
         ax.set_ylabel(r"$\upDelta \Phi / \si{\kb} T$ \hspace{10pt}", labelpad=-2)
 
 
-class RadiusEnergyNminPlot(Plot):
-    def plot_figure(self, f, ax):
-        Nmins = self._args["Nmins"]
+class RadiusEnergyNscaPlot(Plot):
+    """Energy as a function of ring radius for a range of Nsca."""
+
+    def plot_figure(self, ax):
+        N = self._args["N"]
+        Nscas = self._args["Nscas"]
+        samples = self._args["samples"]
+        Lf = self._args["Lf"]
+        T = self._args["T"]
+
         cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
-        mappable = styles.create_linear_mappable(cmap, Nmins[0], Nmins[-1])
+        mappable = styles.create_linear_mappable(cmap, Nscas[0], Nscas[-1])
         energies = []
         radiis = []
         min_energies = []
         min_radii = []
-        samples = self._args["samples"]
-        N = self._args["N"]
-        for Nmin in Nmins:
-            max_radius = analytical.calc_max_radius(self._args["Lf"], Nmin)
+        for Nsca in Nscas:
+            max_radius = analytical.calc_max_radius(Lf, Nsca)
             min_radius = analytical.calc_min_radius(max_radius)
             radii = np.linspace(min_radius, max_radius, num=samples)
             radii_scaled = radii / 1e-6
             radiis.append(radii_scaled)
             energy = [
-                tracks_model.calc_ring_energy(r, N, Nmin, self._args) for r in radii
+                analytical.calc_ring_energy(r, N, Nsca, self._args) for r in radii
             ]
-            energy_scaled = np.array(energy) / (constants.k * self._args["T"])
+            energy_scaled = np.array(energy) / (constants.k * T)
             energies.append(energy_scaled)
             min_energy_i = np.argmin(energy_scaled)
             min_energies.append(energy_scaled[min_energy_i])
@@ -767,9 +663,9 @@ class RadiusEnergyNminPlot(Plot):
         # min_energies -= min_energy
 
         # Plot
-        for Nmin, energy, radii in zip(Nmins, energies, radiis):
-            label = rf"$N_\text{{sca}}={Nmin}$"
-            ax.plot(radii, energy, color=mappable.to_rgba(Nmin), label=label)
+        for Nsca, energy, radii in zip(Nscas, energies, radiis):
+            label = rf"$N_\text{{sca}}={Nsca}$"
+            ax.plot(radii, energy, color=mappable.to_rgba(Nsca), label=label)
 
         ax.plot(
             min_radii, min_energies, linestyle="None", marker="*", markeredgewidth=0
@@ -778,6 +674,7 @@ class RadiusEnergyNminPlot(Plot):
     def setup_axis(self, ax):
         Lf_scaled = int(self._args["Lf"] / 1e-6)
         N = self._args["N"]
+
         ax.set_title(
             rf"$N_\text{{f}} = {N}$, $L_\text{{f}} = \SI{{{Lf_scaled}}}{{\micro\meter}}$",
             loc="center",
@@ -787,44 +684,54 @@ class RadiusEnergyNminPlot(Plot):
 
 
 class RadiusForceLfPlot(Plot):
-    def plot_figure(self, f, ax, calc_degens=False, alpha=1):
+    """Constriction force vs. ring radius for a range of filament lengths.
+
+    Can include degeneracies in limited cases; this is useful for implementation
+    validation.
+    """
+
+    def plot_figure(self, ax, calc_degens=False, alpha=1):
         Lfs = self._args["Lfs"]
         N = self._args["N"]
-        Nmin = self._args["Nmin"]
+        Nsca = self._args["Nsca"]
         delta = self._args["delta"]
-        temp = self._args["T"]
+        T = self._args["T"]
+        lfs = self._args["lfs"]
 
         cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
         mappable = styles.create_linear_mappable(cmap, Lfs[0], Lfs[-1])
         for i, Lf in enumerate(Lfs):
             self._args["Lf"] = Lf
             if calc_degens:
-                lf = self._args["lfs"][i]
-                max_height = int(Nmin * lf - Nmin - 1)
-                min_height = int((Nmin // 2) * lf - 1)
+                lf = lfs[i]
+
+                max_height = int(Nsca * lf - Nsca - 1)
+                min_height = int((Nsca // 2) * lf - 1)
                 heights = range(min_height, max_height + 1)
                 heights = np.array(heights)
                 radii = (heights + 1) * delta / (2 * np.pi)
                 max_radius = radii[-1]
                 min_radius = radii[0]
                 energies = [
-                    tracks_model.calc_ring_energy(r, N, Nmin, self._args) for r in radii
+                    analytical.calc_ring_energy(r, N, Nsca, self._args) for r in radii
                 ]
                 energies = np.array(energies)
-                degens = tracks_model.calc_degeneracies(
+                degens = analytical.calc_degeneracies(
                     heights, lf, N, include_height=False
                 )
-                boltz_weights = degens * np.exp(-energies / constants.k / temp)
-                energies = -constants.k * temp * np.log(boltz_weights)
+                boltz_weights = degens * np.exp(-energies / constants.k / T)
+                energies = -constants.k * T * np.log(boltz_weights)
                 force = -np.diff(energies) / (delta / (2 * np.pi))
                 radii = radii[1:] - delta
             else:
                 samples = self._args["samples"]
-                max_radius = analytical.calc_max_radius(self._args["Lf"], Nmin)
+                Lf = self._args["Lf"]
+
+                max_radius = analytical.calc_max_radius(Lf, Nsca)
                 min_radius = analytical.calc_min_radius(max_radius)
                 radii = np.linspace(min_radius, max_radius, num=samples)
                 force = [
-                    tracks_model.calc_ring_force(r, N, Nmin, self._args) for r in radii
+                    analytical.calc_ring_force(r, N, Nsca, self._args) for r in radii
                 ]
 
             # Convert units
@@ -845,31 +752,42 @@ class RadiusForceLfPlot(Plot):
         ax.axhline(0, linestyle="dashed")
 
     def setup_axis(self, ax):
-        Nmin = self._args["Nmin"]
+        Nsca = self._args["Nsca"]
         N = self._args["N"]
-        ax.set_title(rf"$N_\text{{sca}} = {Nmin}$, $N_\text{{f}} = {N}$", loc="center")
+
+        ax.set_title(rf"$N_\text{{sca}} = {Nsca}$, $N_\text{{f}} = {N}$", loc="center")
         ax.set_xlabel(r"$R / \si{\micro\meter}$")
         ax.set_ylabel(r"$F / \si{\pico\newton}$")
         ax.set_ylim(top=4)
 
 
 class RadiusForceNPlot(Plot):
-    def plot_figure(self, f, ax, calc_degens=False, alpha=1):
+    """Constriction force as a function of ring radius for a range of N.
+
+    Can include degeneracies in limited cases; this is useful for implementation
+    validation.
+    """
+
+    def plot_figure(self, ax, calc_degens=False, alpha=1):
         Ns = self._args["Ns"]
-        Nmin = self._args["Nmin"]
+        Nsca = self._args["Nsca"]
         delta = self._args["delta"]
-        temp = self._args["T"]
+        T = self._args["T"]
+
         if calc_degens:
             lf = self._args["lf"]
-            max_height = Nmin * lf - Nmin - 1
-            min_height = (Nmin // 2) * lf - 1
+
+            max_height = Nsca * lf - Nsca - 1
+            min_height = (Nsca // 2) * lf - 1
             heights = range(min_height, max_height + 1)
             heights = np.array(heights)
             radii_inp = (heights + 1) * delta / (2 * np.pi)
             radii = radii_inp[1:] - delta
         else:
             samples = self._args["samples"]
-            max_radius = analytical.calc_max_radius(self._args["Lf"], Nmin)
+            Lf = self._args["Lf"]
+
+            max_radius = analytical.calc_max_radius(Lf, Nsca)
             min_radius = analytical.calc_min_radius(max_radius)
             radii = np.linspace(min_radius, max_radius, num=samples)
 
@@ -878,19 +796,19 @@ class RadiusForceNPlot(Plot):
         for N in Ns:
             if calc_degens:
                 energies = [
-                    tracks_model.calc_ring_energy(r, N, Nmin, self._args)
+                    analytical.calc_ring_energy(r, N, Nsca, self._args)
                     for r in radii_inp
                 ]
                 energies = np.array(energies)
-                degens = tracks_model.calc_degeneracies(
+                degens = analytical.calc_degeneracies(
                     heights, lf, N, include_height=False
                 )
-                boltz_weights = degens * np.exp(-energies / constants.k / temp)
-                energies = -constants.k * temp * np.log(boltz_weights)
+                boltz_weights = degens * np.exp(-energies / constants.k / T)
+                energies = -constants.k * T * np.log(boltz_weights)
                 force = -np.diff(energies) / (delta / (2 * np.pi))
             else:
                 force = [
-                    tracks_model.calc_ring_force(r, N, Nmin, self._args) for r in radii
+                    analytical.calc_ring_force(r, N, Nsca, self._args) for r in radii
                 ]
 
             # Convert units
@@ -913,9 +831,10 @@ class RadiusForceNPlot(Plot):
 
     def setup_axis(self, ax):
         Lf_scaled = int(self._args["Lf"] / 1e-6)
-        Nmin = self._args["Nmin"]
+        Nsca = self._args["Nsca"]
+
         ax.set_title(
-            rf"$N_\text{{sca}} = {Nmin}$, $L_\text{{f}} = \SI{{{Lf_scaled}}}{{\micro\meter}}$",
+            rf"$N_\text{{sca}} = {Nsca}$, $L_\text{{f}} = \SI{{{Lf_scaled}}}{{\micro\meter}}$",
             loc="center",
         )
         ax.set_xlabel(r"$R / \si{\micro\meter}$")
@@ -924,37 +843,41 @@ class RadiusForceNPlot(Plot):
     #    ax.set_ylim(bottom=-2)
 
 
-class RadiusForceNminPlot(Plot):
-    def plot_figure(self, f, ax):
-        Nmins = self._args["Nmins"]
+class RadiusForceNscaPlot(Plot):
+    """Constriction force as a function of ring radius for a range of Nsca."""
+
+    def plot_figure(self, ax):
+        Nscas = self._args["Nscas"]
         N = self._args["N"]
         samples = self._args["samples"]
-        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
-        mappable = styles.create_linear_mappable(cmap, Nmins[0], Nmins[-1])
+        Lf = self._args["Lf"]
 
-        for Nmin in Nmins:
-            max_radius = analytical.calc_max_radius(self._args["Lf"], Nmin)
+        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
+        mappable = styles.create_linear_mappable(cmap, Nscas[0], Nscas[-1])
+
+        for Nsca in Nscas:
+            max_radius = analytical.calc_max_radius(Lf, Nsca)
             min_radius = analytical.calc_min_radius(max_radius)
             radii = np.linspace(min_radius, max_radius, num=samples)
-            force = [
-                tracks_model.calc_ring_force(r, N, Nmin, self._args) for r in radii
-            ]
+            force = [analytical.calc_ring_force(r, N, Nsca, self._args) for r in radii]
 
             # Convert units
             radii_scaled = radii / 1e-6
             force_scaled = np.array(force) / 1e-12
 
             # Plot
-            label = rf"$N_\text{{sca}}={Nmin}$"
+            label = rf"$N_\text{{sca}}={Nsca}$"
             ax.plot(
-                radii_scaled, force_scaled, color=mappable.to_rgba(Nmin), label=label
+                radii_scaled, force_scaled, color=mappable.to_rgba(Nsca), label=label
             )
 
         ax.axhline(0, linestyle="dashed")
 
     def setup_axis(self, ax):
         N = self._args["N"]
-        Lf_scaled = int(self._args["Lf"] / 1e-6)
+        Lf = self._args["Lf"]
+
+        Lf_scaled = int(Lf / 1e-6)
         ax.set_title(
             rf"$N_\text{{f}} = {N}$, $L_\text{{f}} = \SI{{{Lf_scaled}}}{{\micro\meter}}$",
             loc="center",

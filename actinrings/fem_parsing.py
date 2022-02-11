@@ -6,7 +6,18 @@ import itertools
 import pandas as pd
 
 
-def collect_integrated_data(filename_template, params):
+def collect_integrated_data(filename_template: str, params: dict) -> pd.DataFrame:
+    """Return a dataframe of integration results from multiple FEM calculations.
+
+    Loop over all the parameter combinations given and load the results from existing
+    FEM calculation outputs. Any skipped combinations will be printed.
+
+    Args:
+        filename_template: The template for the output file for the integration results
+            from the FEM calculations. Must contain named fields that match the keys in
+            params.
+        params: System parameters
+    """
 
     # Convert dictionary to lists of tuples of key value for key's list
     paramsl = []
@@ -38,7 +49,8 @@ def collect_integrated_data(filename_template, params):
     return pd.concat(frames)
 
 
-def reduce_data(data, reduce_variables):
+def reduce_data(data: pd.DataFrame, reduce_variables: dict) -> pd.DataFrame:
+    """Loop over the given variables pairs and reduce the given dataframe."""
     for key, value in reduce_variables.items():
         data = data[data[key] == value]
 
