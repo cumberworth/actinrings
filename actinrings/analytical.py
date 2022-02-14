@@ -1,4 +1,4 @@
-"""Functions for calculating analytical results"""
+"""Functions for calculating analytical results."""
 
 
 import math
@@ -179,7 +179,7 @@ def calc_equilibrium_ring_radius(N: int, Nsca: int, params: dict) -> float:
         N: Total number of filaments in ring
         Nsca: Number of scaffold filaments
         params: System parameters
-        """
+    """
     ks = params["ks"]
     kd = params["kd"]
     T = params["T"]
@@ -207,7 +207,7 @@ def calc_equilibrium_radius_numerical(N: int, Nsca: int, params: dict) -> float:
         N: Total number of filaments in ring
         Nsca: Number of scaffold filaments
         params: System parameters
-        """
+    """
     max_radius = calc_max_radius(params["Lf"], Nsca)
     min_radius = max_radius / 2
     res = optimize.minimize_scalar(

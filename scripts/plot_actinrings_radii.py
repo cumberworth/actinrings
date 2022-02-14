@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-"""Plot radii at each time step"""
+"""Plot radii at each time step.
+
+Plots a single replicate of the given iteration for a run.
+"""
 
 import argparse
 
@@ -17,7 +20,7 @@ def main():
     gs = gridspec.GridSpec(1, 1, f)
     ax = f.add_subplot(gs[0, 0])
 
-    p.plot_figure(f, ax)
+    p.plot_figure(ax)
     p.setup_axis(ax)
     # p.set_labels(ax)
     plots.save_figure(f, args["plot_filebase"])

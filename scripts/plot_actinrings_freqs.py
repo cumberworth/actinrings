@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
-"""Plot frequencies along radius"""
+"""Plot sampling frequency at each value of the rring radius.
+
+Plot a curve for each replicate of every variant specfied. It assumes that the given
+variant output files are stored in a directory with the same names as the variant.
+"""
 
 import argparse
 
@@ -17,7 +21,7 @@ def main():
     gs = gridspec.GridSpec(1, 1, f)
     ax = f.add_subplot(gs[0, 0])
 
-    p.plot_figure(f, ax)
+    p.plot_figure(ax)
     p.setup_axis(ax)
     # p.set_labels(ax)
     plots.save_figure(f, args["plot_filebase"])

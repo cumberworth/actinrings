@@ -1,4 +1,4 @@
-"""Plotting functions and classes"""
+"""Plotting functions and classes."""
 
 import json
 
@@ -14,6 +14,12 @@ from matplotlibstyles import styles
 
 
 def setup_figure(w=8.6, h=6):
+    """Setup figures to size and style for PRL.
+
+    This can easly be replaced to use a different style, although some of the methods
+    in this module use latex specific strings that call code defined in the
+    matplotlibstyles package.
+    """
     styles.set_thin_latex_style()
     figsize = (styles.cm_to_inches(w), styles.cm_to_inches(h))
 
