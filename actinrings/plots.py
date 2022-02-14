@@ -15,6 +15,7 @@ from scipy import constants
 
 from actinrings import analytical
 from matplotlibstyles import styles
+from matplotlibstyles import plotutils
 
 
 def setup_figure(w=8.6, h=6):
@@ -25,7 +26,7 @@ def setup_figure(w=8.6, h=6):
     matplotlibstyles package.
     """
     styles.set_thin_latex_style()
-    figsize = (styles.cm_to_inches(w), styles.cm_to_inches(h))
+    figsize = (plotutils.cm_to_inches(w), plotutils.cm_to_inches(h))
 
     return plt.figure(figsize=figsize, dpi=300, constrained_layout=True)
 
@@ -337,8 +338,8 @@ class RadiusLFEsNSimPlot(Plot):
         temp = self._args["temp"]
         reps = self._args["reps"]
 
-        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
-        mappable = styles.create_linear_mappable(cmap, Ns[0], Ns[-1])
+        cmap = plotutils.create_truncated_colormap(0.2, 0.8, name="plasma")
+        mappable = plotutils.create_linear_mappable(cmap, Ns[0], Ns[-1])
 
         # Where to align LFEs
         align_i = -1
@@ -420,8 +421,8 @@ class RadiusForceNSimPlot(Plot):
         Ns = self._args["Ns"]
         reps = self._args["reps"]
 
-        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
-        mappable = styles.create_linear_mappable(cmap, Ns[0], Ns[-1])
+        cmap = plotutils.create_truncated_colormap(0.2, 0.8, name="plasma")
+        mappable = plotutils.create_linear_mappable(cmap, Ns[0], Ns[-1])
 
         # Get heights (same for all N)
         filename = f"{input_dir}/{varis[0]}/{varis[0]}_rep-1.biases"
@@ -485,8 +486,8 @@ class LfEradiusNPlot(Plot):
         Ns = self._args["Ns"]
         Nsca = self._args["Nsca"]
 
-        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
-        mappable = styles.create_linear_mappable(cmap, Ns[0], Ns[-1])
+        cmap = plotutils.create_truncated_colormap(0.2, 0.8, name="plasma")
+        mappable = plotutils.create_linear_mappable(cmap, Ns[0], Ns[-1])
         for N in Ns:
             radii = []
             lengths = []
@@ -521,8 +522,8 @@ class LfEradiusNscaPlot(Plot):
         N = self._args["N"]
         Lfs = self._args["Lfs"]
 
-        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
-        mappable = styles.create_linear_mappable(cmap, Nscas[0], Nscas[-1])
+        cmap = plotutils.create_truncated_colormap(0.2, 0.8, name="plasma")
+        mappable = plotutils.create_linear_mappable(cmap, Nscas[0], Nscas[-1])
         for Nsca in Nscas:
             radii = []
             lengths = []
@@ -559,8 +560,8 @@ class XcForcePlot(Plot):
         Xcs = self._args["Xcs"]
         Lf = self._args["Lf"]
 
-        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
-        mappable = styles.create_linear_mappable(cmap, fractions[0], fractions[-1])
+        cmap = plotutils.create_truncated_colormap(0.2, 0.8, name="plasma")
+        mappable = plotutils.create_linear_mappable(cmap, fractions[0], fractions[-1])
         max_radius = analytical.calc_max_radius(Lf, Nsca)
         for fraction in fractions:
             r = max_radius * fraction
@@ -615,8 +616,8 @@ class RadiusEnergyLfPlot(Plot):
         delta = self._args["delta"]
         T = self._args["T"]
 
-        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
-        mappable = styles.create_linear_mappable(cmap, Lfs[0], Lfs[-1])
+        cmap = plotutils.create_truncated_colormap(0.2, 0.8, name="plasma")
+        mappable = plotutils.create_linear_mappable(cmap, Lfs[0], Lfs[-1])
         energies = []
         radiis = []
         min_energies = []
@@ -706,8 +707,8 @@ class RadiusEnergyNPlot(Plot):
         delta = self._args["delta"]
         Lf = self._args["Lf"]
 
-        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
-        mappable = styles.create_linear_mappable(cmap, Ns[0], Ns[-1])
+        cmap = plotutils.create_truncated_colormap(0.2, 0.8, name="plasma")
+        mappable = plotutils.create_linear_mappable(cmap, Ns[0], Ns[-1])
         max_radius = analytical.calc_max_radius(Lf, Nsca)
         min_radius = analytical.calc_min_radius(max_radius)
         if calc_degens:
@@ -797,8 +798,8 @@ class RadiusEnergyNscaPlot(Plot):
         Lf = self._args["Lf"]
         T = self._args["T"]
 
-        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
-        mappable = styles.create_linear_mappable(cmap, Nscas[0], Nscas[-1])
+        cmap = plotutils.create_truncated_colormap(0.2, 0.8, name="plasma")
+        mappable = plotutils.create_linear_mappable(cmap, Nscas[0], Nscas[-1])
         energies = []
         radiis = []
         min_energies = []
@@ -860,8 +861,8 @@ class RadiusForceLfPlot(Plot):
         delta = self._args["delta"]
         T = self._args["T"]
 
-        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
-        mappable = styles.create_linear_mappable(cmap, Lfs[0], Lfs[-1])
+        cmap = plotutils.create_truncated_colormap(0.2, 0.8, name="plasma")
+        mappable = plotutils.create_linear_mappable(cmap, Lfs[0], Lfs[-1])
         for i, Lf in enumerate(Lfs):
             self._args["Lf"] = Lf
             if calc_degens:
@@ -955,8 +956,8 @@ class RadiusForceNPlot(Plot):
             min_radius = analytical.calc_min_radius(max_radius)
             radii = np.linspace(min_radius, max_radius, num=samples)
 
-        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
-        mappable = styles.create_linear_mappable(cmap, Ns[0], Ns[-1])
+        cmap = plotutils.create_truncated_colormap(0.2, 0.8, name="plasma")
+        mappable = plotutils.create_linear_mappable(cmap, Ns[0], Ns[-1])
         for N in Ns:
             if calc_degens:
                 energies = []
@@ -1016,8 +1017,8 @@ class RadiusForceNscaPlot(Plot):
         samples = self._args["samples"]
         Lf = self._args["Lf"]
 
-        cmap = styles.create_truncated_colormap(0.2, 0.8, name="plasma")
-        mappable = styles.create_linear_mappable(cmap, Nscas[0], Nscas[-1])
+        cmap = plotutils.create_truncated_colormap(0.2, 0.8, name="plasma")
+        mappable = plotutils.create_linear_mappable(cmap, Nscas[0], Nscas[-1])
 
         for Nsca in Nscas:
             max_radius = analytical.calc_max_radius(Lf, Nsca)
