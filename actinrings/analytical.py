@@ -1,4 +1,15 @@
-"""Functions for calculating analytical results."""
+"""Functions for calculating analytical results.
+
+The params dictionary has a standard set of keys. Only a subset of keys may need to be
+defined for a particular method. Possible keys:
+        T: Temperature / K
+        delta: Lattice spacing / m
+        Lf: Filament length / m
+        Xc: Crosslinker concentration / M
+        ks: Equilibrium constant for single crosslinker binding
+        kd: Equilibrium constant for double crosslinker binding
+        EI: Bending rigidity / N m^2
+"""
 
 
 import math

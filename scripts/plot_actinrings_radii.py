@@ -2,7 +2,9 @@
 
 """Plot radii at each time step.
 
-Plots a single replicate of the given iteration for a run.
+Plots a single replicate of the given iteration for a run. The itr should be that which
+is in the file name, rather than the row entry in the output (these can differ when the
+run has been continued from a previous).
 """
 
 import argparse

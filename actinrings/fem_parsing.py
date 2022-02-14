@@ -1,4 +1,4 @@
-"""Functions for parsing output from FEM calculations"""
+"""Functions for parsing output from FEM calculations."""
 
 
 import itertools
