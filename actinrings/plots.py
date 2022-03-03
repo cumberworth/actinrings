@@ -584,7 +584,7 @@ class XcForcePlot(Plot):
 
         ax.axhline(0, linestyle="dashed")
 
-    def setup_axis(self, ax):
+    def setup_axis(self, f, ax):
         Lf_scaled = self._args["Lf"] / 1e-6
         N = self._args["N"]
         Nsca = self._args["Nsca"]
@@ -598,8 +598,12 @@ class XcForcePlot(Plot):
         ax.set_xlabel(r"$\text{[X]} / \si{\molar}$")
         ax.set_ylabel(r"$F / \si{\pico\newton}$")
         ax.set_ylim(top=3)
-        minor_ticks = ticker.LogLocator(subs=(2, 3, 4, 5, 6, 7, 8, 9))
-        ax.xaxis.set_minor_locator(minor_ticks)
+
+        #f.canvas.draw()
+        #minor_ticks = ticker.LogLocator(subs=(2, 3, 4, 5, 6, 7, 8, 9))
+        #ax.xaxis.set_minor_locator(minor_ticks)
+        ax.set_xticks([1e-9, 7.82e-9, 1e-7])
+        ax.set_xticklabels(["$10^{-9}$", r"$K_\mathrm{D}^\mathrm{s}$", "$10^{-7}$"])
 
 
 class RadiusEnergyLfPlot(Plot):
