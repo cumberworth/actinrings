@@ -243,7 +243,7 @@ def calc_equilibrium_radius_numerical(N: int, Nsca: int, params: dict) -> float:
     return res.x
 
 
-def calc_degeneracies(heights, lf, N, include_height=False):
+def calc_degeneracies(heights: list, lf: int, N: int, include_height=False):
     """For testing purposes."""
     max_height = 2 * lf - 3
     degens = []
@@ -261,3 +261,17 @@ def calc_degeneracies(heights, lf, N, include_height=False):
                 degens.append((overlap - 1) * overlap ** (N - 2))
 
     return np.array(degens)
+
+
+def calc_koff(koff, F, xbeta, T):
+    """Calculate the force-dependent off rate.
+
+    This assumes a pulling force so just uses the magnitude.
+
+    Args:
+        koff: Off rate with no force / s^-1
+        F: Applied force / N
+        xbeta: Distance from well to transition state
+        T: Temerature
+    """
+    return koff*np.exp(abs(F)*xbeta/(constants.k*T))
