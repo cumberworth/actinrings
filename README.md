@@ -9,7 +9,7 @@ Some example scripts for creating plots are provided in the [`scripts`](scripts/
 ## Installation
 
 This package was developed and used on Linux.
-[It is available on the PyPI respository]().
+[It is available on the PyPI respository](https://pypi.org/project/actinrings/).
 It can be installed by running
 ```
 pip install X
