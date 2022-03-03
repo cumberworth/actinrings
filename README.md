@@ -1,5 +1,7 @@
 # Supporting python modules for "Constriction of actin rings by passive crosslinkers"
 
+[![DOI](https://zenodo.org/badge/420147949.svg)](https://zenodo.org/badge/latestdoi/420147949)
+
 Python package that implements the analytical model from [Ref. 1](#references).
 
 It also includes a module for creating plots with this model, as well as plots from finite element calculations output from a related package ([elastic-rings](https://github.com/cumberworth/elastic-rings)) and plots from Monte Carlo simulations from another related package ([ActinRingsMC.jl](https://github.com/cumberworth/ActinRingsMC.jl)).
