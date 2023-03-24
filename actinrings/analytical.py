@@ -274,4 +274,4 @@ def calc_koff(koff, F, xbeta, T):
         xbeta: Distance from well to transition state
         T: Temerature
     """
-    return koff*np.exp(abs(F)*xbeta/(constants.k*T))
+    return koff * np.exp(abs(F) * xbeta / (constants.k * T))

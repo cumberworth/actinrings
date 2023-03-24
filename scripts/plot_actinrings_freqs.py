@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Plot sampling frequency at each value of the rring radius.
+"""Plot sampling frequency at each value of the ring radius.
 
 Plot a curve for each replicate of every variant specfied. It assumes that the given
 variant output files are stored in a directory with the same names as the variant.

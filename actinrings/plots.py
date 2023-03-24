@@ -31,10 +31,10 @@ def setup_figure(w=8.6, h=6):
     return plt.figure(figsize=figsize, dpi=300, constrained_layout=True)
 
 
-def save_figure(f, plot_filebase):
-    f.savefig(plot_filebase + ".pgf", transparent=True)
-    f.savefig(plot_filebase + ".pdf", transparent=True)
-    f.savefig(plot_filebase + ".png", transparent=True)
+def save_figure(f, plot_filebase, **kwargs):
+    f.savefig(plot_filebase + ".pgf", transparent=False, **kwargs)
+    f.savefig(plot_filebase + ".pdf", transparent=False, **kwargs)
+    f.savefig(plot_filebase + ".png", transparent=False, **kwargs)
 
 
 def set_line_labels_by_pos(
@@ -257,7 +257,7 @@ class RadiusLFEsSimAnalyticalPlot(Plot):
             ax.plot(radii_scaled, lfes_anal, color=cmap(2))
 
     def setup_axis(self, ax):
-        ax.set_xlabel(r"$R / \si{\micro\meter}$")
+        ax.set_xlabel(r"$R / \unit{\micro\meter}$")
         ax.set_ylabel(r"$LFE / k_\mathrm{b}T$")
 
 
@@ -319,8 +319,8 @@ class RadiusForceSimAnalyticalPlot(Plot):
             ax.plot(forces_radii_scaled, forces_anal_scaled, color=cmap(2))
 
     def setup_axis(self, ax):
-        ax.set_xlabel(r"$R / \si{\micro\meter}$")
-        ax.set_ylabel(r"$F / \si{\pico\newton}$")
+        ax.set_xlabel(r"$R / \unit{\micro\meter}$")
+        ax.set_ylabel(r"$F / \unit{\pico\newton}$")
 
 
 class RadiusLFEsNSimPlot(Plot):
@@ -406,7 +406,7 @@ class RadiusLFEsNSimPlot(Plot):
         )
 
     def setup_axis(self, ax):
-        ax.set_xlabel(r"$R / \si{\micro\meter}$")
+        ax.set_xlabel(r"$R / \unit{\micro\meter}$")
         ax.set_ylabel(r"$LFE / k_\mathrm{b}T$")
 
 
@@ -456,8 +456,8 @@ class RadiusForceNSimPlot(Plot):
             ax.axhline(0, linestyle="dashed")
 
     def setup_axis(self, ax):
-        ax.set_xlabel(r"$R / \si{\micro\meter}$")
-        ax.set_ylabel(r"$F / \si{\pico\newton}$")
+        ax.set_xlabel(r"$R / \unit{\micro\meter}$")
+        ax.set_ylabel(r"$F / \unit{\pico\newton}$")
 
 
 class RadiiPlot(Plot):
@@ -510,8 +510,8 @@ class LfEradiusNPlot(Plot):
 
     def setup_axis(self, ax):
         ax.set_title(rf'$N_\text{{sca}} = {self._args["Nsca"]}$', loc="center")
-        ax.set_xlabel(r"$L^\text{f} / \si{\micro\meter}$")
-        ax.set_ylabel(r"$R_\text{eq} / \si{\micro\meter}$")
+        ax.set_xlabel(r"$L^\text{f} / \unit{\micro\meter}$")
+        ax.set_ylabel(r"$R_\text{eq} / \unit{\micro\meter}$")
 
 
 class LfEradiusNscaPlot(Plot):
@@ -546,8 +546,8 @@ class LfEradiusNscaPlot(Plot):
 
     def setup_axis(self, ax):
         ax.set_title(rf'$N_\text{{f}} = {self._args["N"]}$', loc="center")
-        ax.set_xlabel(r"$L^\text{f} / \si{\micro\meter}$")
-        ax.set_ylabel(r"$R_\text{eq} / \si{\micro\meter}$")
+        ax.set_xlabel(r"$L^\text{f} / \unit{\micro\meter}$")
+        ax.set_ylabel(r"$R_\text{eq} / \unit{\micro\meter}$")
 
 
 class XcForcePlot(Plot):
@@ -591,19 +591,27 @@ class XcForcePlot(Plot):
 
         ax.set_title(
             rf"$N_\text{{sca}} = {Nsca}$, $N_\text{{f}} = {N}$, $L_\text{{f}}"
-            rf"= \SI{{{int(Lf_scaled)}}}{{\micro\meter}}$",
+            rf"= \qty{{{Lf_scaled:.2}}}{{\micro\meter}}$",
             loc="center",
         )
         ax.set_xscale("log")
-        ax.set_xlabel(r"$\text{[X]} / \si{\molar}$")
-        ax.set_ylabel(r"$F / \si{\pico\newton}$")
+        ax.set_xlabel(r"$\text{[X]} / \unit{\molar}$")
+        ax.set_ylabel(r"$F / \unit{\pico\newton}$")
         ax.set_ylim(top=3)
 
-        #f.canvas.draw()
-        #minor_ticks = ticker.LogLocator(subs=(2, 3, 4, 5, 6, 7, 8, 9))
-        #ax.xaxis.set_minor_locator(minor_ticks)
-        ax.set_xticks([1e-9, 7.82e-9, 1e-7])
-        ax.set_xticklabels(["$10^{-9}$", r"$K_\mathrm{D}^\mathrm{s}$", "$10^{-7}$"])
+        # f.canvas.draw()
+        # minor_ticks = ticker.LogLocator(subs=(2, 3, 4, 5, 6, 7, 8, 9))
+        # ax.xaxis.set_minor_locator(minor_ticks)
+        ax.minorticks_off()
+        ax.set_xticks([1e-9, 7.82e-9, 12e-9, 1e-7])
+        ax.set_xticklabels(
+            [
+                "$10^{-9}$",
+                r"$K_\mathrm{D}^\mathrm{s} \quad$",
+                r"$\quad \quad \text{[X]}_\text{exp}$",
+                "$10^{-7}$",
+            ]
+        )
 
 
 class RadiusEnergyLfPlot(Plot):
@@ -673,7 +681,7 @@ class RadiusEnergyLfPlot(Plot):
         # Plot
         for radii, Lf, energy in zip(radiis, Lfs, energies):
             Lf_scaled = np.round(Lf / 1e-6, decimals=1)
-            label = rf"$L_\text{{f}}=\SI{{{Lf_scaled}}}{{\micro\meter}}$"
+            label = rf"$L_\text{{f}}=\qty{{{Lf_scaled}}}{{\micro\meter}}$"
             ax.plot(radii, energy, color=mappable.to_rgba(Lf), label=label, alpha=alpha)
 
         ax.plot(
@@ -690,8 +698,8 @@ class RadiusEnergyLfPlot(Plot):
         N = self._args["N"]
 
         ax.set_title(rf"$N_\text{{sca}} = {Nsca}$, $N_\text{{f}} = {N}$", loc="center")
-        ax.set_xlabel(r"$R / \si{\micro\meter}$")
-        ax.set_ylabel(r"$\upDelta \Phi / \si{\kb} T$ \hspace{7pt}", labelpad=-4)
+        ax.set_xlabel(r"$R / \unit{\micro\meter}$")
+        ax.set_ylabel(r"$\upDelta \Phi / \unit{\kb} T$ \hspace{7pt}", labelpad=-4)
 
     #    ax.set_ylim(top=30)
     #    ax.set_xlim(left=3, right=8.7)
@@ -781,15 +789,15 @@ class RadiusEnergyNPlot(Plot):
         )
 
     def setup_axis(self, ax):
-        Lf_scaled = int(self._args["Lf"] / 1e-6)
+        Lf_scaled = self._args["Lf"] / 1e-6
         Nsca = self._args["Nsca"]
 
         ax.set_title(
-            rf"$N_\text{{sca}} = {Nsca}$, $L_\text{{f}} = \SI{{{Lf_scaled}}}{{\micro\meter}}$",
+            rf"$N_\text{{sca}} = {Nsca}$, $L_\text{{f}} = \qty{{{Lf_scaled:.2}}}{{\micro\meter}}$",
             loc="center",
         )
-        ax.set_xlabel(r"$R / \si{\micro\meter}$")
-        ax.set_ylabel(r"$\upDelta \Phi / \si{\kb} T$ \hspace{10pt}", labelpad=-2)
+        ax.set_xlabel(r"$R / \unit{\micro\meter}$")
+        ax.set_ylabel(r"$\upDelta \Phi / \unit{\kb} T$ \hspace{10pt}", labelpad=-2)
 
 
 class RadiusEnergyNscaPlot(Plot):
@@ -839,16 +847,20 @@ class RadiusEnergyNscaPlot(Plot):
             min_radii, min_energies, linestyle="None", marker="*", markeredgewidth=0
         )
 
-    def setup_axis(self, ax):
-        Lf_scaled = int(self._args["Lf"] / 1e-6)
+    def setup_axis(self, ax, ylabelpad=None, yloc="center"):
+        Lf_scaled = self._args["Lf"] / 1e-6
         N = self._args["N"]
 
         ax.set_title(
-            rf"$N_\text{{f}} = {N}$, $L_\text{{f}} = \SI{{{Lf_scaled}}}{{\micro\meter}}$",
+            rf"$N_\text{{f}} = {N}$, $L_\text{{f}} = \qty{{{Lf_scaled:.2}}}{{\micro\meter}}$",
             loc="center",
         )
-        ax.set_xlabel(r"$R / \si{\micro\meter}$")
-        ax.set_ylabel(r"\hspace{15pt} $\upDelta \Phi / \si{\kb} T$", labelpad=-4)
+        ax.set_xlabel(r"$R / \unit{\micro\meter}$")
+        ax.set_ylabel(
+            r"\hspace{15pt} $\upDelta \Phi / \unit{\kb} T$",
+            labelpad=ylabelpad,
+            loc=yloc,
+        )
 
 
 class RadiusForceLfPlot(Plot):
@@ -909,7 +921,7 @@ class RadiusForceLfPlot(Plot):
 
             # Plot
             Lf_scaled = np.round(Lf / 1e-6, decimals=1)
-            label = rf"$L_\text{{f}}=\SI{{{Lf_scaled}}}{{\micro\meter}}$"
+            label = rf"$L_\text{{f}}=\qty{{{Lf_scaled}}}{{\micro\meter}}$"
             ax.plot(
                 radii_scaled,
                 force_scaled,
@@ -920,14 +932,14 @@ class RadiusForceLfPlot(Plot):
 
         ax.axhline(0, linestyle="dashed")
 
-    def setup_axis(self, ax):
+    def setup_axis(self, ax, ytop=4, ybottom=None):
         Nsca = self._args["Nsca"]
         N = self._args["N"]
 
         ax.set_title(rf"$N_\text{{sca}} = {Nsca}$, $N_\text{{f}} = {N}$", loc="center")
-        ax.set_xlabel(r"$R / \si{\micro\meter}$")
-        ax.set_ylabel(r"$F / \si{\pico\newton}$")
-        ax.set_ylim(top=4)
+        ax.set_xlabel(r"$R / \unit{\micro\meter}$")
+        ax.set_ylabel(r"$F / \unit{\pico\newton}$")
+        ax.set_ylim(top=ytop, bottom=ybottom)
 
 
 class RadiusForceNPlot(Plot):
@@ -999,15 +1011,15 @@ class RadiusForceNPlot(Plot):
         ax.axhline(0, linestyle="dashed")
 
     def setup_axis(self, ax):
-        Lf_scaled = int(self._args["Lf"] / 1e-6)
+        Lf_scaled = self._args["Lf"] / 1e-6
         Nsca = self._args["Nsca"]
 
         ax.set_title(
-            rf"$N_\text{{sca}} = {Nsca}$, $L_\text{{f}} = \SI{{{Lf_scaled}}}{{\micro\meter}}$",
+            rf"$N_\text{{sca}} = {Nsca}$, $L_\text{{f}} = \qty{{{Lf_scaled:.2}}}{{\micro\meter}}$",
             loc="center",
         )
-        ax.set_xlabel(r"$R / \si{\micro\meter}$")
-        ax.set_ylabel(r"$F / \si{\pico\newton}$", labelpad=-1)
+        ax.set_xlabel(r"$R / \unit{\micro\meter}$")
+        ax.set_ylabel(r"$F / \unit{\pico\newton}$", labelpad=-1)
 
     #    ax.set_ylim(bottom=-2)
 
@@ -1046,10 +1058,10 @@ class RadiusForceNscaPlot(Plot):
         N = self._args["N"]
         Lf = self._args["Lf"]
 
-        Lf_scaled = int(Lf / 1e-6)
+        Lf_scaled = Lf / 1e-6
         ax.set_title(
-            rf"$N_\text{{f}} = {N}$, $L_\text{{f}} = \SI{{{Lf_scaled}}}{{\micro\meter}}$",
+            rf"$N_\text{{f}} = {N}$, $L_\text{{f}} = \qty{{{Lf_scaled:.2}}}{{\micro\meter}}$",
             loc="center",
         )
-        ax.set_xlabel(r"$R / \si{\micro\meter}$")
-        ax.set_ylabel(r"$F / \si{\pico\newton}$", labelpad=-1)
+        ax.set_xlabel(r"$R / \unit{\micro\meter}$")
+        ax.set_ylabel(r"$F / \unit{\pico\newton}$", labelpad=-1)
