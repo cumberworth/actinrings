@@ -35,8 +35,6 @@ For more information on building and installing python packages, see the documen
 
 ## Links
 
-zenodo?
-
 [Python Packaging Authority](https://packaging.python.org/en/latest/)
 
 [elastic-rings](https://github.com/cumberworth/elastic-rings)
