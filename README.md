@@ -1,4 +1,4 @@
-# Supporting python modules for "Constriction of actin rings by passive crosslinkers"
+# Supporting python modules for equilibrium analysis in "Constriction of actin rings by passive crosslinkers"
 
 [![DOI](https://zenodo.org/badge/420147949.svg)](https://zenodo.org/badge/latestdoi/420147949)
 
@@ -16,7 +16,7 @@ It can be installed by running
 ```
 pip install actinrings
 ```
-If you do not have root access and it does not automatically default to installing locally, the `--user` flag may be used.
+If you are not using a virtual environment, the `--user` flag may be used instead to install it locally to the user.
 To install directly from this repository, run
 ```
 python -m build
