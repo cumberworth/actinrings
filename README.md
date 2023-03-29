@@ -1,6 +1,7 @@
 # Supporting python modules for equilibrium analysis in "Constriction of actin rings by passive crosslinkers"
 
-[![DOI](https://zenodo.org/badge/420147949.svg)](https://zenodo.org/badge/latestdoi/420147949)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6326378.svg)](https://doi.org/10.5281/zenodo.6326378)
+
 
 Python package for the equilibrium analysis of [Ref. 1](#references).
 
