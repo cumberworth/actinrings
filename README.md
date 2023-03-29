@@ -2,7 +2,6 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6326378.svg)](https://doi.org/10.5281/zenodo.6326378)
 
-
 Python package for the equilibrium analysis of [Ref. 1](#references).
 
 It includes a module implementing the equilibrium model, as well as a module for creating plots with this model, as well as plots from finite element calculations output from a related package ([elastic-rings](https://github.com/cumberworth/elastic-rings)) and plots from Monte Carlo simulations from another related package ([ActinRingsMC.jl](https://github.com/cumberworth/ActinRingsMC.jl)).
